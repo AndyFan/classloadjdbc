@@ -1,5 +1,7 @@
 
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.util.Properties;
@@ -13,9 +15,11 @@ import java.util.Properties;
  */
 public class JarClassLoaderHiveTest {
 
-    public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, SQLException {
+    public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, SQLException, IOException {
 
-        String jarUrl2 = "/Users/lifangyu/soft/driver-lib/hive-jdbc-2.1.1/"; //自己定义的测试jar包，不同版本打印内容不同
+        String basePath = JarClassLoaderHiveTest.class.getResource("/").getPath();
+        File file = new File(basePath,"../../../lib/mysql");
+        String jarUrl2 = file.getCanonicalPath(); //自己定义的测试jar包，不同版本打印内容不同
         /**
          * description lib/目录下的日子文件删除以防冲突
          * log4j-1.2-api-2.10.0.jar
@@ -27,10 +31,13 @@ public class JarClassLoaderHiveTest {
         String url = "jdbc:hive2://127.0.0.1:10001/ty";
         String user = "test";
         String pwd = "test";
+//        String driver = "org.apache.hive.jdbc.HiveDriver";
+        String driver = "com.mysql.cj.jdbc.Driver";
+//        String driver = "com.mysql.jdbc.Driver";
         // String sql = "show databases";
         // String sql = "show tables";
         String sql = "select * from user_level_demo1 limit 10";
-        testHiveJdbc(jarUrl2, url, user, pwd, sql);
+        testHiveJdbc(jarUrl2,driver, url, user, pwd, sql);
 
 
         String jarUrl3 = "/Users/lifangyu/soft/driver-lib/hive-jdbc-3.1.2/";
@@ -47,15 +54,15 @@ public class JarClassLoaderHiveTest {
         user = "test";
         pwd = "test";
         String sql3 = "SELECT x.* FROM dc_dwa.dwa_d_bd_blend x where x.pro_id = 10 and x.contact_no='13009502690'";
-        testHiveJdbc(jarUrl3, url, user, pwd, sql3);
+        testHiveJdbc(jarUrl3, driver, url, user, pwd, sql3);
     }
 
-    private static void testHiveJdbc(String jarUrl, String url, String user, String pwd, String sql) throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException {
+    private static void testHiveJdbc(String jarUrl,String driverStr, String url, String user, String pwd, String sql) throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException {
         long start = System.currentTimeMillis();
         JarClassLoader jarLoader = new JarClassLoader(new String[]{jarUrl});
         JarClassLoaderSwapper classLoaderSwapper = JarClassLoaderSwapper.newCurrentThreadClassLoaderSwapper();
         classLoaderSwapper.setCurrentThreadClassLoader(jarLoader);
-        Class<?> aClass = Thread.currentThread().getContextClassLoader().loadClass("org.apache.hive.jdbc.HiveDriver");
+        Class<?> aClass = Thread.currentThread().getContextClassLoader().loadClass(driverStr);
         classLoaderSwapper.restoreCurrentThreadClassLoader();
 
         Driver driver = (Driver) aClass.newInstance();
